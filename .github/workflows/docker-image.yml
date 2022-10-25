@@ -20,6 +20,5 @@ jobs:
         docker build . --file Dockerfile --tag rsenden/fortify-ci-tools:fcli-beta
     
     - name: Push Docker images
-      if: steps.create_release.outputs.release_created
       run: |
         docker push rsenden/fortify-ci-tools:fcli-beta
