@@ -1,0 +1,68 @@
+# escape=`
+
+# We need a proper Windows image to install vc_redist.x64.exe, as the installer itself is a 32-bit executable
+#FROM mcr.microsoft.com/windows/servercore:ltsc2019
+FROM mcr.microsoft.com/dotnet/sdk:6.0-windowsservercore-ltsc2019
+
+USER ContainerAdministrator
+
+# Add Fortify user
+RUN NET USER fortify /add && NET LOCALGROUP Administrators /add fortify
+
+######################################################################################
+# Install various tools like Java, Maven & Gradle using chocolatey
+######################################################################################
+
+# Install Chocolatey. TODO: Check download hash
+RUN powershell -c "Set-ExecutionPolicy -ExecutionPolicy Unrestricted" `
+    && powershell -c "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
+RUN choco install -y chocolatey-core.extension chocolatey-compatibility.extension
+
+# Install vcredist, required by fcli and possibly other tools
+RUN choco install -y vcredist140
+
+# Install Java 11 JDK, required for running FoDUploader/ScanCentral Client, and when packaging Java applications
+RUN choco install -y zulu11
+
+# Install Maven
+ARG MAVEN_VERSION=3.8.6
+RUN choco install -y maven --version %MAVEN_VERSION%
+
+# Install Gradle
+ARG GRADLE_VERSION=7.5.1
+RUN choco install -y gradle --version %GRADLE_VERSION%
+
+# Install Git and Git Bash
+# This seems to be the only Git dir that works, while avoiding spaces in default bash location in C:\Program Files
+ARG GIT_DIR=C:\\Users\\ContainerAdministrator\\AppData\\Local\\Programs\\Git
+RUN choco install git -y --install-args="'/DIR=$env:GIT_DIR'" `
+    && setx PATH "%PATH%;%GIT_DIR%\bin
+
+######################################################################################
+# Install fcli & other Fortify tools
+######################################################################################
+
+ARG FCLI_VERSION=dev_main
+ARG FOD_UPLOADER_VERSION=5.4.0
+ARG SC_CLIENT_VERSION=21.1.2
+ARG FVE_VERSION=1.8.0
+
+ARG FORTIFY_TOOLS_DIR=C:\\Tools\\Fortify
+ARG FCLI_DIR=$FORTIFY_TOOLS_DIR\\fcli\\$FCLI_VERSION
+ARG FOD_UPLOADER_DIR=$FORTIFY_TOOLS_DIR\\fod-uploader\\$FOD_UPLOADER_VERSION
+ARG SC_CLIENT_DIR=$FORTIFY_TOOLS_DIR\\sc-client\\$SC_CLIENT_VERSION
+ARG FVE_DIR=$FORTIFY_TOOLS_DIR\\FortifyVulnerabilityExporter\\$FVE_VERSION
+
+# TODO Check download hash
+RUN curl -fSLo fcli-windows.zip https://github.com/fortify-ps/fcli/releases/download/%FCLI_VERSION%/fcli-windows.zip `
+    && powershell -c "Expand-Archive -Path fcli-windows.zip -DestinationPath %FCLI_DIR%\bin" `
+	&& del fcli-windows.zip `
+	&& %FCLI_DIR%\bin\fcli.exe tool fod-uploader install %FOD_UPLOADER_VERSION% -d %FOD_UPLOADER_DIR% `
+	&& %FCLI_DIR%\bin\fcli.exe tool sc-client install %SC_CLIENT_VERSION% -d %SC_CLIENT_DIR% `
+	&& %FCLI_DIR%\bin\fcli.exe tool vuln-exporter install %FVE_VERSION% -d %FVE_DIR% `
+	&& setx PATH "%PATH%;%FCLI_DIR%\bin;%FOD_UPLOADER_DIR%\bin;%SC_CLIENT_DIR%\bin;%FVE_DIR%\bin"
+
+# Run container as user 'fortify'
+USER fortify
+
+ENTRYPOINT ["cmd.exe", "/k", "vsdevcmd.bat" ]

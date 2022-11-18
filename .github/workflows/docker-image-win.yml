@@ -1,0 +1,23 @@
+name: Docker Image CI - Windows
+
+on: 
+  workflow_dispatch:
+ 
+jobs:
+  ci-win:
+    runs-on: windows-2019
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Docker Login
+      run: |
+        docker login -u ${{ secrets.DOCKER_HUB_USER }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
+
+    - name: Build Docker images
+      run: |
+        docker build . --file Dockerfile.win --tag rsenden/fortify-ci-tools:fcli-beta-win
+
+    - name: Push Docker images
+      run: |
+        docker push rsenden/fortify-ci-tools:fcli-beta-win
+

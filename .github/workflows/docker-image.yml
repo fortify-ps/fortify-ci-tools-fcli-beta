@@ -22,3 +22,5 @@ jobs:
     - name: Push Docker images
       run: |
         docker push rsenden/fortify-ci-tools:fcli-beta
+
+
