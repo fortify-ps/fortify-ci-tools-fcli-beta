@@ -2,7 +2,7 @@
 
 # We need a proper Windows image to install vc_redist.x64.exe, as the installer itself is a 32-bit executable
 #FROM mcr.microsoft.com/windows/servercore:ltsc2019
-FROM mcr.microsoft.com/dotnet/sdk:6.0-windowsservercore-ltsc2019
+FROM mcr.microsoft.com/dotnet/framework/sdk:4.8
 
 USER ContainerAdministrator
 
@@ -60,9 +60,9 @@ RUN curl -fSLo fcli-windows.zip https://github.com/fortify-ps/fcli/releases/down
 	&& %FCLI_DIR%\bin\fcli.exe tool fod-uploader install %FOD_UPLOADER_VERSION% -d %FOD_UPLOADER_DIR% `
 	&& %FCLI_DIR%\bin\fcli.exe tool sc-client install %SC_CLIENT_VERSION% -d %SC_CLIENT_DIR% `
 	&& %FCLI_DIR%\bin\fcli.exe tool vuln-exporter install %FVE_VERSION% -d %FVE_DIR% `
-	&& setx PATH "%PATH%;%FCLI_DIR%\bin;%FOD_UPLOADER_DIR%\bin;%SC_CLIENT_DIR%\bin;%FVE_DIR%\bin"
+	&& setx /M PATH "%PATH%;%FCLI_DIR%\bin;%FOD_UPLOADER_DIR%\bin;%SC_CLIENT_DIR%\bin;%FVE_DIR%\bin"
 
 # Run container as user 'fortify'
 USER fortify
 
-ENTRYPOINT ["cmd.exe", "/k", "vsdevcmd.bat" ]
+CMD "cmd.exe"
