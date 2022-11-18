@@ -4,6 +4,7 @@
 #FROM mcr.microsoft.com/windows/servercore:ltsc2019
 FROM mcr.microsoft.com/dotnet/framework/sdk:4.8
 
+SHELL ["cmd.exe", "/c"]
 USER ContainerAdministrator
 
 # Add Fortify user
